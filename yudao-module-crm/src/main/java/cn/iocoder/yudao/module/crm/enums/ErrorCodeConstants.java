@@ -66,6 +66,8 @@ public interface ErrorCodeConstants {
     ErrorCode CUSTOMER_CREATE_NAME_NOT_NULL = new ErrorCode(1_020_006_013, "客户名称不能为空！");
     ErrorCode CUSTOMER_NAME_EXISTS = new ErrorCode(1_020_006_014, "已存在名为【{}】的客户！");
     ErrorCode CUSTOMER_UPDATE_DEAL_STATUS_FAIL = new ErrorCode(1_020_006_015, "更新客户的成交状态失败，原因：已经是该状态，无需更新");
+    ErrorCode CUSTOMER_ASSIGN_STRATEGY_INVALID = new ErrorCode(1_020_006_016, "分配策略不存在，请检查配置");
+    ErrorCode CUSTOMER_ASSIGN_CANDIDATE_INVALID = new ErrorCode(1_020_006_017, "分配候选人不存在或已被禁用，请检查配置");
 
     // ========== 权限管理 1_020_007_000 ==========
     ErrorCode CRM_PERMISSION_NOT_EXISTS = new ErrorCode(1_020_007_000, "数据权限不存在");

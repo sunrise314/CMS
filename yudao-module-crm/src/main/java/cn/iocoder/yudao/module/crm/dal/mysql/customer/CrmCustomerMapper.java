@@ -14,13 +14,16 @@ import cn.iocoder.yudao.module.crm.enums.common.CrmBizTypeEnum;
 import cn.iocoder.yudao.module.crm.enums.common.CrmSceneTypeEnum;
 import cn.iocoder.yudao.module.crm.util.CrmPermissionUtils;
 import com.baomidou.mybatisplus.core.conditions.query.LambdaQueryWrapper;
+import com.baomidou.mybatisplus.core.conditions.query.QueryWrapper;
 import com.baomidou.mybatisplus.core.conditions.update.LambdaUpdateWrapper;
 import org.apache.ibatis.annotations.Mapper;
 import org.springframework.lang.Nullable;
 import org.springframework.util.Assert;
 
 import java.time.LocalDateTime;
+import java.util.Collection;
 import java.util.List;
+import java.util.Map;
 
 /**
  * 客户 Mapper
@@ -156,6 +159,53 @@ public interface CrmCustomerMapper extends BaseMapperX<CrmCustomerDO> {
                             .or().isNull(CrmCustomerDO::getContactLastTime)));
         });
         return selectList(query);
+    }
+
+    /**
+     * 获得公海中待智能分配的客户列表
+     *
+     * 与 {@link #selectListByAutoPool} 对称：只分配未锁定、未成交的公海客户
+     *
+     * @return 客户列表
+     */
+    default List<CrmCustomerDO> selectListByPoolForAssign() {
+        LambdaQueryWrapper<CrmCustomerDO> query = new LambdaQueryWrapper<>();
+        // 公海数据：没有负责人
+        query.isNull(CrmCustomerDO::getOwnerUserId);
+        // 未锁定 + 未成交
+        query.eq(CrmCustomerDO::getLockStatus, false).eq(CrmCustomerDO::getDealStatus, false);
+        return selectList(query);
+    }
+
+    /**
+     * 基于 CAS 的负责人抢占更新：仅当客户还处于公海（owner_user_id 为空）时，才允许写入新负责人
+     *
+     * 用于智能分配与手动领取的并发防重：两个事务同时抢占同一个客户，只有一个能更新成功
+     *
+     * @param id          客户编号
+     * @param ownerUserId 新负责人用户编号
+     * @return 影响行数。0 表示抢占失败（客户已被别人认领）
+     */
+    default int updateOwnerUserIdByIdIfPool(Long id, Long ownerUserId) {
+        return update(new LambdaUpdateWrapper<CrmCustomerDO>()
+                .eq(CrmCustomerDO::getId, id)
+                .isNull(CrmCustomerDO::getOwnerUserId)
+                .set(CrmCustomerDO::getOwnerUserId, ownerUserId)
+                .set(CrmCustomerDO::getOwnerTime, LocalDateTime.now()));
+    }
+
+    /**
+     * 按负责人统计持有客户数、成交客户数，用于分配策略的负载/成单率计算
+     *
+     * @param ownerUserIds 负责人用户编号集合
+     * @return 统计列表，字段：ownerUserId、totalCount、dealCount
+     */
+    default List<Map<String, Object>> selectOwnerStatsList(Collection<Long> ownerUserIds) {
+        QueryWrapper<CrmCustomerDO> query = new QueryWrapper<>();
+        query.select("owner_user_id AS ownerUserId", "COUNT(*) AS totalCount", "SUM(deal_status) AS dealCount")
+                .in("owner_user_id", ownerUserIds)
+                .groupBy("owner_user_id");
+        return selectMaps(query);
     }
 
     default Long selectCountByTodayContact(Long ownerUserId) {

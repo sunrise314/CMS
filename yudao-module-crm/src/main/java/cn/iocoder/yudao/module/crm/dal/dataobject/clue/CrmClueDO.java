@@ -125,4 +125,15 @@ public class CrmClueDO extends BaseDO {
      */
     private String remark;
 
+    // ========== Phase 2: 线索评分冗余字段（查询优化） ==========
+
+    /**
+     * 当前综合分（冗余自 crm_clue_score 最新版本）
+     */
+    private Integer currentScore;
+    /**
+     * 当前分级 A/B/C/D（冗余自 crm_clue_score 最新版本）
+     */
+    private String currentGrade;
+
 }

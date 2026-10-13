@@ -7,7 +7,6 @@ spring:
     # noinspection SpringBootApplicationYaml
     exclude:
       - com.alibaba.druid.spring.boot.autoconfigure.DruidDataSourceAutoConfigure # 排除 Druid 的自动配置，使用 dynamic-datasource-spring-boot-starter 配置多数据源
-      - org.springframework.boot.autoconfigure.quartz.QuartzAutoConfiguration # 默认 local 环境，不开启 Quartz 的自动配置
       - org.springframework.ai.vectorstore.qdrant.autoconfigure.QdrantVectorStoreAutoConfiguration # 禁用 AI 模块的 Qdrant，手动创建
       - org.springframework.ai.vectorstore.milvus.autoconfigure.MilvusVectorStoreAutoConfiguration # 禁用 AI 模块的 Milvus，手动创建
   # 数据源配置项
@@ -84,7 +83,7 @@ spring:
   # Redis 配置。Redisson 默认的配置足够使用，一般不需要进行调优
   redis:
     host: 127.0.0.1 # 地址
-    port: 6379 # 端口
+    port: 6380 # 端口（crm-redis 容器映射，6379 被 ange-redis 占用）
     database: 0 # 数据库索引
 #    password: dev # 密码，建议生产环境开启
 
@@ -283,3 +282,14 @@ justauth:
     type: REDIS
     prefix: 'social_auth_state:' # 缓存前缀，目前只对 Redis 缓存生效，默认 JUSTAUTH::STATE::
     timeout: 24h # 超时时长，目前只对 Redis 缓存生效，默认 3 分钟
+
+--- #################### CRM 线索评分（自定义） ####################
+crm:
+  score:
+    llm:
+      enabled: false # 填入 api-key 后改为 true
+      base-url: https://api.deepseek.com # OpenAI 兼容接口，换厂商只改这里
+      api-key: "" # DeepSeek API key，待填
+      model: deepseek-chat
+      timeout-ms: 30000
+      weight: 30 # LLM 分占比（%），规则分占其余 70%
